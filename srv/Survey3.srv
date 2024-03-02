@@ -1,0 +1,6 @@
+# Survey3.srv
+# Request
+string command
+---
+# Response
+bool isMounted

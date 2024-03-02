@@ -1,0 +1,19 @@
+<launch>
+    <!-- Node for publishing images -->
+    <!-- <node name="image_publisher" pkg="uav_pi" type="image_publisher.py" output="screen" /> -->
+
+    <!-- Node for detecting objects -->
+    <!-- <node name="object_detect_server" pkg="uav_pi" type="detect-pt.py" output="screen" /> -->
+
+    <!-- Node for processing detections -->
+    <node name="detection_processor" pkg="uav_pi" type="detection_processor.py" output="screen" />
+
+    <!-- Service for directly changing pwm signals to the Survey3 based on incoming commands-->
+    <node name="survey3_control_service" pkg="uav_pi" type="survey3_control_service.py" output="screen" />
+
+    <!-- Service for downloading and publishing pics from the survey3 -->
+    <node name="survey3_publisher" pkg="uav_pi" type="survey3_publisher.py" output="screen" />
+
+    <!-- Service for publishing temperature data from the MLX -->
+    <!-- <node name="MLX_publisher" pkg="uav_pi" type="MLX_publisher.py" output="screen" /> -->
+</launch>

@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+import rospy
+from sensor_msgs.msg import BatteryState, NavSatFix
+from pymavlink import mavutil
+import time
+
+rospy.init_node('uav_info_publisher', anonymous=True)
+pub_battery = rospy.Publisher('battery_state', BatteryState, queue_size=10)
+pub_GPS = rospy.Publisher('gps_state', NavSatFix, queue_size=10)
+
+connection_string = "/dev/ttyACM0"
+vehicle = mavutil.mavlink_connection(connection_string)
+
+# Function to handle and print GPS data
+def handle_gps_data(msg):
+    print(f"GPS: Lat: {msg.lat / 1e7}, Lon: {msg.lon / 1e7}, Alt: {msg.alt / 1e3} meters")
+
+
+#check connection 
+vehicle.wait_heartbeat()
+print("Heartbeat from vehicle received.")
+
+while True:
+    msg = vehicle.recv_match(blocking=True)
+    stamp = rospy.get_rostime()
+    pub = None
+
+    #handling of no message 
+    if not msg:
+        continue
+
+    if msg.get_type() == 'BATTERY_STATUS':
+        pub = BatteryState()
+        pub.temperature = msg.temperature
+        pub.voltage = msg.voltages[0]
+        pub.cell_voltage =  msg.voltages
+        pub.percentage = msg.battery_remaining
+        pub_battery.publish(pub)
+    elif msg.get_type() == 'GPS_RAW_INT':
+        pub = NavSatFix()
+        pub.header.stamp = stamp
+        pub.latitude = msg.lat / 1e7
+        pub.longitude = msg.long / 1e7
+        pub.altitude =  msg.alt / 1e3
+        pub.percentage = msg.battery_remaining
+        pub_GPS.publish(pub)
+    #elif msg.get_type() == 'VFR_HUD':
+
+    time.sleep(0.1)  #Sleep a little to not overload the CPU
