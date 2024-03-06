@@ -49,6 +49,7 @@ def write_image(img):
     run_name = f.read()
     formatted_photo_t = datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m_%d_%Y_%H-%M-%S')
     cv2.imwrite('/home/robertobrien/Documents/runs/'+run_name+'/' + formatted_photo_t+"_image_detected.jpg", img.copy())
+    return formatted_photo_t
 
 
 model = get_model(path='/home/robertobrien/catkin_ws/src/uav_pi/weights/best.pt')  # load model in
@@ -57,7 +58,9 @@ bridge = CvBridge()  # initialize a CV bridge to convert ROS images to OpenCV fo
 
 def handle_object_detect(req):
     rospy.loginfo("detect-pt: Got a request to detect objects")
-    
+
+    filename = req.image.header.frame_id
+    print(filename)
     try:
         cv_image = bridge.imgmsg_to_cv2(req.image, "bgr8")  # convert ROS image message to OpenCV image
     except CvBridgeError as e:
@@ -84,7 +87,7 @@ def handle_object_detect(req):
             y2s.append(y2)
             confs.append(conf)
             labels.append(label)
-            fnames.append("some-file-name")
+            fnames.append(filename)
         except:
             x1s = [0]
             y1s = [0]
@@ -104,7 +107,7 @@ def handle_object_detect(req):
     response.fnames = fnames
 
     bb_img = draw_bounding_box(cv_image, model, detections)
-    write_image(bb_img)  # Or show_image(bb_img)
+    photo_fname = write_image(bb_img)  # Or show_image(bb_img)
 
     rospy.loginfo("detect-pt: sending back response (ObjectDetectResponse)")
     print(response)

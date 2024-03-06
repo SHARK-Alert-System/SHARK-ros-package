@@ -3,7 +3,9 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from std_msgs.msg import String
+from sensor_msgs.msg import NavSatFix
 from uav_pi.srv import Survey3, Survey3Request
+from uav_pi.msg import ImageWithGPS
 import cv2
 import time
 import sys
@@ -20,6 +22,21 @@ LOCAL_PHOTO_DIRECTORY = '/home/robertobrien/Documents/Survey3_Photos/'
 # ubuntu usb device helpers
 
 bridge = CvBridge()
+
+last_alt = -1
+last_long = -1
+last_lat = -1
+
+def gps_callback(msg):
+    """ updates the gps location """
+    # access global variables
+    global last_alt
+    global last_lat
+    global last_long
+    
+    last_lat = msg.latitude
+    last_long = msg.longitude
+    last_alt = msg.altitude
 
 def ubuntu_list_block_devices():
     """List all block devices, removing leading characters."""
@@ -130,20 +147,25 @@ def get_recent_photo_img():
     return cv2.imread(path,0), path, fname
 
 def camera_publisher():
+    ubuntu_unmount_device()
+    time.sleep(1)
    
+    rospy.Subscriber('gps_state', NavSatFix, gps_callback)
     rospy.init_node('camera_publisher', anonymous=True)
     pub = rospy.Publisher('camera_image', Image, queue_size=10)
     rate = rospy.Rate(1) # 1 Hz maximum
     bridge = CvBridge()
-    ubuntu_unmount_device() # this seems to help when we start if i am debugging
 
 
     
     rospy.loginfo("survey3_publisher: Survey3 publisher node initialized.\n")
     
     while not rospy.is_shutdown():
+
         try:    
             photo_timestamp = trigger() #trigger photo
+            formatted_photo_t = datetime.datetime.fromtimestamp(photo_timestamp.to_sec()).strftime('%m_%d_%Y_%H-%M-%S')
+
             survey_3_mount() #mount on the survey3 side
             time.sleep(2)
             ubuntu_handle_mount()#mount the usb device on the ubuntu side
@@ -159,6 +181,8 @@ def camera_publisher():
                 rospy.logerr("survey3_publisher: image is null...")
             ros_image = bridge.cv2_to_imgmsg(img, "bgr8")
             ros_image.header.stamp = photo_timestamp
+            #ros_image.header.frame_id = str(run_name+'/'+formatted_photo_t+'_image.jpg')
+
             pub.publish(ros_image)
             rospy.loginfo("survey3_publisher: published image " + path +  " to /camera_image\n")
             rate.sleep()
@@ -166,8 +190,20 @@ def camera_publisher():
             # logging the photos to our runs folder
             f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
             run_name = f.read()
-            formatted_photo_t = datetime.datetime.fromtimestamp(photo_timestamp.to_sec()).strftime('%m_%d_%Y_%H-%M-%S')
             cv2.imwrite('/home/robertobrien/Documents/runs/'+run_name+'/'+formatted_photo_t+'_image.jpg', img)
+
+            print("now we get expirimental")
+            print(last_lat)
+            img_gps = ImageWithGPS()
+            
+            #expirimental
+            img_gps.image = ros_image # comment out if you just want to debug the other stuff
+            img_gps.latitude = float(last_lat)
+            img_gps.longitude = float(last_long)
+            img_gps.altitude = float(last_alt)
+            img_gps.fname = str(run_name+'/'+formatted_photo_t+'_image.jpg')
+            #print(img_gps)
+            time.sleep(1)
         except:
             rospy.logerr("survey3_publisher: Error, unmounting mounts and starting loop over.")
             ubuntu_unmount_device()

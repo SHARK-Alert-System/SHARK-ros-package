@@ -5,3 +5,7 @@ int32[] y2
 float64[] conf
 string[] label
 string[] fname
+float64 latitude
+float64 longitude
+float64 altitude
+sensor_msgs/Image image

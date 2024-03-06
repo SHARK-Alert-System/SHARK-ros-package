@@ -53,6 +53,7 @@ add_message_files(
   FILES
   Detection.msg
   Survey3Status.msg
+  ImageWithGPS.msg
   # Any other message files
 )
 

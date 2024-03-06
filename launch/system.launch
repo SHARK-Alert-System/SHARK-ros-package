@@ -4,16 +4,16 @@
     <node name="talker" pkg="uav_pi" type="talker.py"/>
 
     <!-- Node for detecting objects -->
-    <node name="object_detect_server" pkg="uav_pi" type="detect-pt.py"/>
+    <!-- <node name="object_detect_server" pkg="uav_pi" type="detect-pt.py"/> -->
 
     <!-- Node for processing detections -->
-    <node name="detection_processor" pkg="uav_pi" type="detection_processor.py"/>
+    <node name="detection_processor" pkg="uav_pi" type="detection_processor.py" output="screen"/>
 
     <!-- Service for directly changing pwm signals to the Survey3 based on incoming commands-->
-    <node name="survey3_control_service" pkg="uav_pi" type="survey3_control_service.py"/>
+    <node name="survey3_control_service" pkg="uav_pi" type="survey3_control_service.py" output="screen"/>
 
     <!-- Service for downloading and publishing pics from the survey3 -->
-    <node name="survey3_publisher" pkg="uav_pi" type="survey3_publisher.py"/>
+    <node name="survey3_publisher" pkg="uav_pi" type="survey3_publisher.py" output="screen"/>
 
     <!-- Service for publishing temperature data from the MLX -->
     <node name="MLX_publisher" pkg="uav_pi" type="MLX_publisher.py"/>
