@@ -152,7 +152,7 @@ def camera_publisher():
    
     rospy.Subscriber('gps_state', NavSatFix, gps_callback)
     rospy.init_node('camera_publisher', anonymous=True)
-    pub = rospy.Publisher('camera_image', Image, queue_size=10)
+    pub = rospy.Publisher('camera_image', ImageWithGPS, queue_size=10)
     rate = rospy.Rate(1) # 1 Hz maximum
     bridge = CvBridge()
 
@@ -202,6 +202,7 @@ def camera_publisher():
             img_gps.longitude = float(last_long)
             img_gps.altitude = float(last_alt)
             img_gps.fname = str(run_name+'/'+formatted_photo_t+'_image.jpg')
+
             #print(img_gps)
             time.sleep(1)
         except:

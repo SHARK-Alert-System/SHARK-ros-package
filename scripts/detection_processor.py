@@ -5,17 +5,21 @@ from sensor_msgs.msg import Image
 from uav_pi.msg import Detection
 from uav_pi.srv import ObjectDetect, ObjectDetectRequest
 from cv_bridge import CvBridge
+from uav_pi.msg import ImageWithGPS
+import datetime
 
 class ImageDetectionProcessor:
     def __init__(self):
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera_image", Image, self.image_callback)
+        self.image_sub = rospy.Subscriber("/camera_image", ImageWithGPS, self.image_callback)
         self.detection_pub = rospy.Publisher("/detections", Detection, queue_size=10)
         self.is_request_processing = False  # Flag to indicate if a request is being processed, makes sure we are only doing one at a time.
         rospy.loginfo("detection_processor: Node ready to facilitate processing")
 
 
-    def image_callback(self, image_msg):
+    def image_callback(self, image_gps_msg):
+
+
         if self.is_request_processing:
             # If we are already processing a request, don't do anything
             return
@@ -26,7 +30,7 @@ class ImageDetectionProcessor:
             rospy.wait_for_service('/object_detect', timeout=40)
             detect_service = rospy.ServiceProxy('/object_detect', ObjectDetect)
             detect_request = ObjectDetectRequest()
-            detect_request.image = image_msg  # send ros images
+            detect_request.image = image_gps_msg.image  # send ros images
             response = detect_service(detect_request)
             rospy.loginfo("detection_processor: image send to detect-pt. Response was: " + str(response))
         except rospy.ServiceException as e:
@@ -44,9 +48,13 @@ class ImageDetectionProcessor:
             detection_msg.conf = response.confs[i]
             detection_msg.label = response.labels[i]
             detection_msg.fname = response.fnames[i]
+            detection_msg.latitude = image_gps_msg.latitude
+            detection_msg.longitude =  image_gps_msg.longitude
+            detection_msg.altitude = image_gps_msg.altitude
             # print(detection_msg.x1, "," , detection_msg.y1, " : ", detection_msg.x2, ",", detection_msg.y2)
 
             self.detection_pub.publish(detection_msg)
+            print(detection_msg)
         self.is_request_processing = False  # Reset the flag as the request has been processed
 
 def main():

@@ -2,6 +2,7 @@
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+from uav_pi.msg import ImageWithGPS
 import cv2
 import os
 import random
@@ -11,7 +12,7 @@ import random
 # this is a node to just publish test images to the topic '/camera_image'
 def publish_image(folder_path, topic_name):
     rospy.init_node('image_publisher', anonymous=True)
-    pub = rospy.Publisher(topic_name, Image, queue_size=10)
+    pub = rospy.Publisher(topic_name, ImageWithGPS, queue_size=10)
     rate = rospy.Rate(1)  # 1 Hz
 
     #Initialize the bridge between ROS and OpenCV
@@ -35,11 +36,22 @@ def publish_image(folder_path, topic_name):
 
     # Convert the OpenCV image to a ROS message
     ros_image = bridge.cv2_to_imgmsg(cv_image, "bgr8")
+
+    img_gps = ImageWithGPS()
+
+    img_gps.image=ros_image
+    img_gps.latitude = 30.69
+    img_gps.longitude = -72.69
+    img_gps.altitude = 30
+    img_gps.fname = "image_name.jpeg"
     
     rospy.loginfo("image_publisher: Running image publisher: {}".format(topic_name))
+    rospy.loginfo(image_path)
 
     while not rospy.is_shutdown():
-        pub.publish(ros_image)
+        
+        pub.publish(img_gps)
+        rospy.loginfo("image_publisher: Publishing image")
         # rospy.loginfo("Published image to topic: {}".format(topic_name))
         rate.sleep()
 
