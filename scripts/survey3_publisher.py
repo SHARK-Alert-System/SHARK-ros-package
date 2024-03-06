@@ -10,6 +10,7 @@ import sys
 import os
 import re
 import subprocess
+import datetime
 
 CAMERA_DIRECTORY = '/media/sd_card/DCIM/Photo/'
 LOCAL_PHOTO_DIRECTORY = '/home/robertobrien/Documents/Survey3_Photos/'
@@ -77,14 +78,15 @@ def survey3_command_client(command):
 
 
 def trigger():
+    """triggers a photo and returns the timestamp at which it was triggered"""
     mounted = survey3_command_client('t')
     timestamp = rospy.get_rostime()
     time.sleep(0.1)
 
     if mounted:  # If the camera is not mounted after taking a picture, for example
-        rospy.logerr("trigger(): Camera was mounted. Unmounting...")
+        rospy.loginfo("trigger(): Camera was still mounted. Now unmounting...")
         survey3_command_client('s')  # Attempt to mount or change state
-        time.sleep(1.5)  # Wait for 2 seconds before the next command for state stabilization
+        time.sleep(2)  # wait for 2 seconds before the next command for state stabilization
         survey3_command_client('t')  # Capture or trigger again if needed
         timestamp = rospy.get_rostime()
     rospy.loginfo("survey3_publisher.trigger(): sent trigger command")
@@ -126,10 +128,12 @@ def get_recent_photo_img():
     return cv2.imread(path,0), path, fname
 
 def camera_publisher():
+   
     rospy.init_node('camera_publisher', anonymous=True)
     pub = rospy.Publisher('camera_image', Image, queue_size=10)
-    rate = rospy.Rate(0.1) # 1 Hz maximum
+    rate = rospy.Rate(1) # 1 Hz maximum
     bridge = CvBridge()
+    ubuntu_unmount_device() # this seems to help when we start if i am debugging
 
 
     
@@ -141,22 +145,27 @@ def camera_publisher():
             survey_3_mount() #mount on the survey3 side
             time.sleep(1)
             ubuntu_handle_mount()#mount the usb device on the ubuntu side
-            time.sleep(2)
+            time.sleep(1)
             img, path, fname = get_recent_photo_img() # gets the recent survey3 image
-            #print("Saving photo: ", path)
-            #cv2.imwrite(LOCAL_PHOTO_DIRECTORY + fname, img)  # saves recent survey3 image
 
             img = cv2.imread(path)
+            print("We got the image!")
 
             ubuntu_unmount_device() #unmounts USB device
             survey_3_unmount()      #unmounts from survey3 side
             if img is None:
                 rospy.logerr("survey3_publisher: image is null...")
             ros_image = bridge.cv2_to_imgmsg(img, "bgr8")
-            ros_image.header.timestamp = photo_timestamp
+            ros_image.header.stamp = photo_timestamp
             pub.publish(ros_image)
-            rospy.loginfo("survey3_publisher: published image " + path +  " to /camera_image")
+            rospy.loginfo("survey3_publisher: published image " + path +  " to /camera_image\n")
             rate.sleep()
+
+            # logging the photos to our runs folder
+            f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
+            run_name = f.read()
+            formatted_photo_t = datetime.datetime.fromtimestamp(photo_timestamp.to_sec()).strftime('%m-%d-%Y-%H:%M:%S')
+            cv2.imwrite('/home/robertobrien/Documents/runs/'+run_name+'/'+formatted_photo_t+'_image.jpg', img)
         except:
             rospy.logerr("survey3_publisher: Error, unmounting mounts and starting loop over.")
             ubuntu_unmount_device()

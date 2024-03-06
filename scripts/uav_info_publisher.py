@@ -22,6 +22,7 @@ print("Heartbeat from vehicle received.")
 
 while True:
     msg = vehicle.recv_match(blocking=True)
+    print(msg)
     stamp = rospy.get_rostime()
     pub = None
 
@@ -37,6 +38,7 @@ while True:
         pub.percentage = msg.battery_remaining
         pub_battery.publish(pub)
     elif msg.get_type() == 'GPS_RAW_INT':
+        print(msg)
         pub = NavSatFix()
         pub.header.stamp = stamp
         pub.latitude = msg.lat / 1e7

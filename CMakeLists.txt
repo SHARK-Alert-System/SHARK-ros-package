@@ -166,7 +166,6 @@ include_directories(
   scripts/detect-pt.py
   scripts/MLX_publisher.py
   scripts/pi_cam_publisher.py
-  scripts/mavlink_publisher.py
   scripts/survey3_publisher.py
   scripts/survey3_control_service.py
   scripts/uav_info_publisher.py

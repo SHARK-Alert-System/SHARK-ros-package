@@ -38,15 +38,26 @@
 
 import rospy
 from std_msgs.msg import String
+import datetime
+import os
 
 def talker():
-    pub = rospy.Publisher('chatter', String, queue_size=10)
-    rospy.init_node('talker', anonymous=True)
-    rate = rospy.Rate(10) # 10hz
+    pub = rospy.Publisher('run_name', String, queue_size=10)
+    rospy.init_node('run_name_node', anonymous=True)
+    rate = rospy.Rate(1) # 10hz
+
+    #here we're just gonna print the formatted time so that we can save all runs in one session to the same file
+    formatted_time = datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m-%d-%Y-%H:%M:%S')
+    runname_path = "/home/robertobrien/Documents/runs/run_name.txt"
+    os.mkdir("/home/robertobrien/Documents/runs/"+formatted_time)
+    runname_file = open(runname_path, "w")
+    runname_file.write(formatted_time)
+    runname_file.close()
+
+
     while not rospy.is_shutdown():
-        hello_str = "hello world %s" % rospy.get_time()
-        rospy.loginfo(hello_str)
-        pub.publish(hello_str)
+        rospy.loginfo(formatted_time)
+        pub.publish(formatted_time)
         rate.sleep()
 
 if __name__ == '__main__':

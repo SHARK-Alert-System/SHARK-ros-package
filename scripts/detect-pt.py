@@ -9,6 +9,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from uav_pi.srv import ObjectDetect, ObjectDetectResponse
 import numpy as np
+import datetime
 
 # Assuming these functions are defined in another module or earlier in this script
 # get_model, infer, draw_bounding_box, show_image, write_image
@@ -44,7 +45,10 @@ def show_image(img):
 
 def write_image(img):
     # Display the image
-    cv2.imwrite('/home/robertobrien/Documents/detections/detected-pt.jpg', img.copy())
+    f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
+    run_name = f.read()
+    formatted_photo_t = datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m-%d-%Y-%H:%M:%S')
+    cv2.imwrite('/home/robertobrien/Documents/runs/'+run_name+'/' + formatted_photo_t+"_image_detected.jpg", img.copy())
 
 
 model = get_model(path='/home/robertobrien/catkin_ws/src/uav_pi/weights/best.pt')  # load model in
