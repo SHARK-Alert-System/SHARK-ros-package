@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import rospy
-from sensor_msgs.msg import Temperature
+from sensor_msgs.msg import Temperature, NavSatFix
 import smbus2
 import datetime
+import time
 
 #register adresses
 MLX90614_I2CADDR = 0x5A
@@ -12,7 +13,26 @@ MLX90614_TOBJ2 = 0x08#object temp2
 MLX90614_EMIS = 0x04#emissivity register
 EMISSIVITY = 0.96#https://scienceofdoom.com/2010/12/27/emissivity-of-the-ocean/#:~:text=From%20quite%20ancient%20data%2C%20the,speed%20and%20sea%20surface%20roughness.
 
+#variables to reset eveyime we get a new location
+last_alt = -1
+last_long = -1
+last_lat = -1
+
+def gps_callback(msg):
+    """ updates the gps location """
+    # access global variables
+    global last_alt
+    global last_lat
+    global last_long
+    
+    last_lat = msg.latitude
+    last_long = msg.longitude
+    last_alt = msg.altitude
+    #rospy.loginfo(str(last_lat) + "," +  str(last_long) +  "," +  str(last_alt))
+
+
 def read_temp(reg_addr):
+    """read the temp from a register addr in Celcius"""
     try:
         """Read temperature from the given register address."""
         temp = bus.read_word_data(MLX90614_I2CADDR, reg_addr)
@@ -36,6 +56,7 @@ def read_object1_temp():
     return read_temp(MLX90614_TOBJ1)
 
 def write_emissivity(epsilon):
+    """changes the emisivity of the MLX sensor. We only need to run this once, but we can test different 'e' here."""
     bus.write_word_data(MLX90614_I2CADDR, MLX90614_EMIS, 0x00)
     val = round(65535 * epsilon) #gotta be an integer between 0 and 65535 which relates to 0.0 to 1.0
     bus.write_word_data(MLX90614_I2CADDR, MLX90614_EMIS, val)
@@ -46,45 +67,48 @@ def mlx90614_publisher():
     pub_ambient = rospy.Publisher('ambient_temperature', Temperature, queue_size=10)
     pub_object = rospy.Publisher('object_temperature', Temperature, queue_size=10)
     seq = 0
-    rate = rospy.Rate(1) 
+    rate = rospy.Rate(10) # rate in Hz
 
     while not rospy.is_shutdown():
         ambient_temp = read_ambient_temp()
-        a_time = rospy.get_rostime()
+        a_time = rospy.get_rostime() # logs time that temperature was taken.
 
-        object1_temp = read_object1_temp()
+        object1_temp = read_object1_temp() # logs time that temperature was taken.
         o_time = rospy.get_rostime()
-        #object2_temp = read_object1_temp() # is the same as object1
+        #object2_temp = read_object1_temp() # is the same as object1 so we do not need this
 
         ambient_temp_msg = Temperature()
         object_temp_msg = Temperature() # temperature objects
 
-
+        # Initializes Temperature object
         ambient_temp_msg.temperature = round(ambient_temp,2)
         ambient_temp_msg.variance = 0
         ambient_temp_msg.header.frame_id = "ambient_temp"
         ambient_temp_msg.header.stamp = a_time
         ambient_temp_msg.header.seq = seq
 
+        # Initializes Temperature object
         object_temp_msg.temperature = round(object1_temp,2)
         object_temp_msg.variance = 0
         object_temp_msg.header.frame_id = "object_temp"
         object_temp_msg.header.stamp = o_time
         object_temp_msg.header.seq = seq
-
-        #str(datetime.date.fromtimestamp(rospy.get_rostime().to_sec()))
         
+        # log the data to a text file 
         temperature_data = open(temperature_f_path, "a")
         datetime_str = str(datetime.datetime.fromtimestamp(o_time.to_sec()))
-        temperature_data.write("" + datetime_str   + "," + str(round(ambient_temp,2)) + "," + str(round(object1_temp,2)) + "\n")
+        temperature_data.write("" + datetime_str + "," + str(round(ambient_temp,2)) + "," + str(round(object1_temp,2)) + "," + str(last_lat) + "," + str(last_long) +  "," + str(last_alt) + "\n")
         temperature_data.close()
 
+        # just some logging to the terminal. Prints time, location, temperatures. 
         rospy.loginfo(datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m-%d-%Y-%H:%M:%S'))
+        rospy.loginfo("Location: " + str(last_lat) + "," +  str(last_long) +  "," +  str(last_alt))
         rospy.loginfo("Ambient Temperature: {:.2f} C".format(ambient_temp))
         rospy.loginfo("Object1 Temperature: {:.2f} C".format(object1_temp))
         rospy.loginfo("")
 
 
+        # publish the temperatures
         if ambient_temp_msg.temperature is not None:
             pub_ambient.publish(ambient_temp_msg)
         if object_temp_msg.temperature is not None:
@@ -96,15 +120,20 @@ def mlx90614_publisher():
 if __name__ == '__main__':
     rospy.init_node('mlx90614_publisher', anonymous=True)
 
-    # logging the temperature
+    # allow sus to get GPS info
+    rospy.Subscriber('gps_state', NavSatFix, gps_callback)
+
+    # logging the temperature to /home/robertobrien/Documents/runs/run_name.txt
     f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
     run_name = f.read()
     current_time = datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec())
-    formatted_time = current_time.strftime('%m-%d-%Y-%H:%M:%S')
-    temperature_f_path = "/home/robertobrien/Documents/runs/" + run_name + "/" + formatted_time + "_temps.txt"
+    formatted_time = current_time.strftime('%m_%d_%Y_%H-%M-%S')
+    temperature_f_path = "/home/robertobrien/Documents/runs/" + run_name + "/temps.txt"
     temperature_data = open(temperature_f_path, "w")
-    temperature_data.write("datetime,ambient_temperature,object_temperature\n")
+    temperature_data.write("datetime,ambient_temperature,object_temperature,latitude,longitude,altitude\n")
     temperature_data.close()
+
+    time.sleep(1) # a little sleep to let some GPS info comethrough the channel
 
     while 1:
         try:

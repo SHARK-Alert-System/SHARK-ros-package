@@ -47,7 +47,7 @@ def write_image(img):
     # Display the image
     f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
     run_name = f.read()
-    formatted_photo_t = datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m-%d-%Y-%H:%M:%S')
+    formatted_photo_t = datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m_%d_%Y_%H-%M-%S')
     cv2.imwrite('/home/robertobrien/Documents/runs/'+run_name+'/' + formatted_photo_t+"_image_detected.jpg", img.copy())
 
 

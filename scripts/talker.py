@@ -47,7 +47,7 @@ def talker():
     rate = rospy.Rate(1) # 10hz
 
     #here we're just gonna print the formatted time so that we can save all runs in one session to the same file
-    formatted_time = datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m-%d-%Y-%H:%M:%S')
+    formatted_time = datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m_%d_%Y_%H-%M-%S')
     runname_path = "/home/robertobrien/Documents/runs/run_name.txt"
     os.mkdir("/home/robertobrien/Documents/runs/"+formatted_time)
     runname_file = open(runname_path, "w")

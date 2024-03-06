@@ -15,6 +15,7 @@ import datetime
 CAMERA_DIRECTORY = '/media/sd_card/DCIM/Photo/'
 LOCAL_PHOTO_DIRECTORY = '/home/robertobrien/Documents/Survey3_Photos/'
 
+# Tips: if issues arise where the images aren't refreshing, reformat the camera's SD card
 ##############################################################################
 # ubuntu usb device helpers
 
@@ -119,6 +120,7 @@ def listdir():
 
 # gets the most recently taken photo. Assumes filenames are date and timestamps
 def get_recent_photo_path():
+    #print(str(listdir()))
     fname = str(listdir().pop())
     return str(CAMERA_DIRECTORY + fname), fname
 
@@ -143,7 +145,7 @@ def camera_publisher():
         try:    
             photo_timestamp = trigger() #trigger photo
             survey_3_mount() #mount on the survey3 side
-            time.sleep(1)
+            time.sleep(2)
             ubuntu_handle_mount()#mount the usb device on the ubuntu side
             time.sleep(1)
             img, path, fname = get_recent_photo_img() # gets the recent survey3 image
@@ -164,7 +166,7 @@ def camera_publisher():
             # logging the photos to our runs folder
             f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
             run_name = f.read()
-            formatted_photo_t = datetime.datetime.fromtimestamp(photo_timestamp.to_sec()).strftime('%m-%d-%Y-%H:%M:%S')
+            formatted_photo_t = datetime.datetime.fromtimestamp(photo_timestamp.to_sec()).strftime('%m_%d_%Y_%H-%M-%S')
             cv2.imwrite('/home/robertobrien/Documents/runs/'+run_name+'/'+formatted_photo_t+'_image.jpg', img)
         except:
             rospy.logerr("survey3_publisher: Error, unmounting mounts and starting loop over.")
