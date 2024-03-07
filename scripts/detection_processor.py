@@ -8,6 +8,8 @@ from cv_bridge import CvBridge
 from uav_pi.msg import ImageWithGPS
 import datetime
 
+detections_f_path = ""
+
 class ImageDetectionProcessor:
     def __init__(self):
         self.bridge = CvBridge()
@@ -18,6 +20,7 @@ class ImageDetectionProcessor:
 
 
     def image_callback(self, image_gps_msg):
+        global detections_f_path
 
 
         if self.is_request_processing:
@@ -53,11 +56,32 @@ class ImageDetectionProcessor:
             detection_msg.altitude = image_gps_msg.altitude
             # print(detection_msg.x1, "," , detection_msg.y1, " : ", detection_msg.x2, ",", detection_msg.y2)
 
+            # logging all the data to a file for visualization later
+            f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
+            run_name = f.read()
+            f.close()
+            detections_f_path = "/home/robertobrien/Documents/runs/" + run_name + "/detections.txt"
+            detection_data = open(detections_f_path, "a")
+            datetime_str = str(datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()))
+            detection_data.write("" + datetime_str + "," + str(response.fnames[i]) + "," + str(response.labels[i]) + "," + str(response.confs[i]) + "," + str(image_gps_msg.latitude) + "," + str(image_gps_msg.longitude) + "," + str(image_gps_msg.altitude) + "\n")
+            detection_data.close()
+
             self.detection_pub.publish(detection_msg)
             print(detection_msg)
+        
         self.is_request_processing = False  # Reset the flag as the request has been processed
 
 def main():
+
+    # this block is to set where the data is going later
+    f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
+    run_name = f.read()
+    f.close()
+    detections_f_path = "/home/robertobrien/Documents/runs/" + run_name + "/detections.txt"
+    detection_data = open(detections_f_path, "w")
+    detection_data.write("datetime,fname,label,confidence,latitude,longitude,altitude\n")
+    detection_data.close()
+    
     rospy.init_node('image_detection_processor', anonymous=True)
     processor = ImageDetectionProcessor()
     rospy.spin()

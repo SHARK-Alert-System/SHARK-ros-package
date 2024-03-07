@@ -59,8 +59,10 @@ bridge = CvBridge()  # initialize a CV bridge to convert ROS images to OpenCV fo
 def handle_object_detect(req):
     rospy.loginfo("detect-pt: Got a request to detect objects")
 
-    filename = req.image.header.frame_id
-    print(filename)
+    # TODO make sure that we get the filepath again
+    #filename = req.imafname
+    #print(filename)
+
     try:
         cv_image = bridge.imgmsg_to_cv2(req.image, "bgr8")  # convert ROS image message to OpenCV image
     except CvBridgeError as e:

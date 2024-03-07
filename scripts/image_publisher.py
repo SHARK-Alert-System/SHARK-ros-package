@@ -40,7 +40,7 @@ def publish_image(folder_path, topic_name):
     img_gps = ImageWithGPS()
 
     img_gps.image=ros_image
-    img_gps.latitude = 30.69
+    img_gps.latitude = 30.69 # made up numbers
     img_gps.longitude = -72.69
     img_gps.altitude = 30
     img_gps.fname = "image_name.jpeg"
