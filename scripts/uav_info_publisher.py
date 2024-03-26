@@ -22,10 +22,21 @@ dlong = 0.001
 def handle_gps_data(msg):
     print(f"GPS: Lat: {msg.lat / 1e7}, Lon: {msg.lon / 1e7}, Alt: {msg.alt / 1e3} meters")
 
+def request_gps_info(master):
+    # Request GPS data
+    master.mav.request_data_stream_send(
+        master.target_system,    # Target system ID
+        master.target_component, # Target component ID
+        mavutil.mavlink.MAV_DATA_STREAM_POSITION, # Data stream ID (GPS)
+        1,  # Request data every 1 Hz
+        1   # Start sending data
+    )
+    #print("GPS data requested.")
 
 #check connection 
 vehicle.wait_heartbeat()
 print("Heartbeat from vehicle received.")
+request_gps_info(vehicle)
 
 while True:
     msg = vehicle.recv_match(blocking=True)
@@ -33,9 +44,13 @@ while True:
     stamp = rospy.get_rostime()
     pub = None
 
+    
+
     #handling of no message 
     if not msg:
         continue
+
+    #print(msg)
 
 
     
@@ -49,7 +64,6 @@ while True:
         pub.altitude =  30.45
         pub_GPS.publish(pub)
         print(starting_long)
-
     if msg.get_type() == 'BATTERY_STATUS':
         pub = BatteryState()
         pub.temperature = msg.temperature
@@ -57,14 +71,17 @@ while True:
         pub.cell_voltage =  msg.voltages
         pub.percentage = msg.battery_remaining
         pub_battery.publish(pub)
-    elif msg.get_type() == 'GPS_RAW_INT':
-        print(msg)
+        print(pub)
+    elif msg.get_type() == 'GLOBAL_POSITION_INT':
+        #print(msg)
         pub = NavSatFix()
         pub.header.stamp = stamp
         pub.latitude = msg.lat / 1e7
-        pub.longitude = msg.long / 1e7
+        pub.longitude = msg.lon / 1e7
         pub.altitude =  msg.alt / 1e3
         pub_GPS.publish(pub)
+        print(pub)
+        print()
     #elif msg.get_type() == 'VFR_HUD':
 
     time.sleep(0.1)  #Sleep a little to not overload the CPU
