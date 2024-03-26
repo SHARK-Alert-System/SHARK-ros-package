@@ -9,12 +9,12 @@
     <!-- Node for processing detections -->
     <node name="detection_processor" pkg="uav_pi" type="detection_processor.py" output="screen"/>
 
-    <!-- Service for directly changing pwm signals to the Survey3 based on incoming commands-->
-    <node name="survey3_control_service" pkg="uav_pi" type="survey3_control_service.py" output="screen"/>
+    <!-- Gets gps data -->
+    <node name="uav_info_publisher" pkg="uav_pi" type="uav_info_publisher.py" output="screen"/>
 
-    <!-- Service for downloading and publishing pics from the survey3 -->
-    <node name="survey3_publisher" pkg="uav_pi" type="survey3_publisher.py" output="screen"/>
+    <!-- Taking pics from the USB camera and sending to the topic-->
+    <node name="pi_cam_publisher" pkg="uav_pi" type="pi_cam_publisher.py" output="screen"/>
 
     <!-- Service for publishing temperature data from the MLX -->
-    <node name="MLX_publisher" pkg="uav_pi" type="MLX_publisher.py"/>
+    <!-- <node name="MLX_publisher" pkg="uav_pi" type="MLX_publisher.py"/> -->
 </launch>
