@@ -33,10 +33,13 @@ def request_gps_info(master):
     )
     #print("GPS data requested.")
 
+
+rospy.wait_for_service('/object_detect', timeout=40)
+
 #check connection 
 vehicle.wait_heartbeat()
-print("Heartbeat from vehicle received.")
-request_gps_info(vehicle)
+rospy.loginfo("uav_info_publisher: Heartbeat from vehicle received. Broadcasting GPS info.")
+request_gps_info(vehicle) # sends a request to the flight controller to send us GPS info
 
 while True:
     msg = vehicle.recv_match(blocking=True)
@@ -44,17 +47,12 @@ while True:
     stamp = rospy.get_rostime()
     pub = None
 
-    
-
     #handling of no message 
     if not msg:
         continue
 
-    #print(msg)
-
-
     
-    if enable_fake_gpsinfo:
+    if enable_fake_gpsinfo: # for testing
         pub = NavSatFix()
         pub.header.stamp = stamp
         starting_lat = starting_lat + dlat
@@ -63,7 +61,7 @@ while True:
         pub.longitude = starting_long
         pub.altitude =  30.45
         pub_GPS.publish(pub)
-        print(starting_long)
+        #print(starting_long)
     if msg.get_type() == 'BATTERY_STATUS':
         pub = BatteryState()
         pub.temperature = msg.temperature
@@ -71,7 +69,7 @@ while True:
         pub.cell_voltage =  msg.voltages
         pub.percentage = msg.battery_remaining
         pub_battery.publish(pub)
-        print(pub)
+        #print(pub)
     elif msg.get_type() == 'GLOBAL_POSITION_INT':
         #print(msg)
         pub = NavSatFix()
@@ -80,8 +78,8 @@ while True:
         pub.longitude = msg.lon / 1e7
         pub.altitude =  msg.alt / 1e3
         pub_GPS.publish(pub)
-        print(pub)
-        print()
+        #print(pub)
+        #print()
     #elif msg.get_type() == 'VFR_HUD':
 
-    time.sleep(0.1)  #Sleep a little to not overload the CPU
+    time.sleep(0.1)  #sleep to not overload the CPU

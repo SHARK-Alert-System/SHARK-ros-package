@@ -35,7 +35,7 @@ class ImageDetectionProcessor:
             detect_request = ObjectDetectRequest()
             detect_request.image = image_gps_msg.image  # send ros images
             response = detect_service(detect_request)
-            rospy.loginfo("detection_processor: image send to detect-pt. Response was: " + str(response))
+            #rospy.loginfo("detection_processor: image send to detect-pt. Response was: " + str(response))
         except rospy.ServiceException as e:
             rospy.logerr("detection_processor: Service call failed: %s" % e)
             self.is_request_processing = False  # Reset the flag due to service call failure

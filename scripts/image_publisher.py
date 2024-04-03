@@ -9,7 +9,7 @@ import random
 
 
 
-# this is a node to just publish test images to the topic '/camera_image'
+# this is a node to just publish test images to the topic '/camera_image', read from a file
 def publish_image(folder_path, topic_name):
     rospy.init_node('image_publisher', anonymous=True)
     pub = rospy.Publisher(topic_name, ImageWithGPS, queue_size=10)

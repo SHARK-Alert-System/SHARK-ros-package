@@ -7,19 +7,21 @@ import time
 
 #register adresses
 MLX90614_I2CADDR = 0x5A
-MLX90614_TA = 0x06 #ambient temp
-MLX90614_TOBJ1 = 0x07#object temp2
-MLX90614_TOBJ2 = 0x08#object temp2
-MLX90614_EMIS = 0x04#emissivity register
-EMISSIVITY = 0.96#https://scienceofdoom.com/2010/12/27/emissivity-of-the-ocean/#:~:text=From%20quite%20ancient%20data%2C%20the,speed%20and%20sea%20surface%20roughness.
+MLX90614_TA = 0x06 # ambient temp
+MLX90614_TOBJ1 = 0x07# object temp2
+MLX90614_TOBJ2 = 0x08# object temp2
+MLX90614_EMIS = 0x04# emissivity register
+EMISSIVITY = 0.96# https://scienceofdoom.com/2010/12/27/emissivity-of-the-ocean/#:~:text=From%20quite%20ancient%20data%2C%20the,speed%20and%20sea%20surface%20roughness.
 
 #variables to reset eveyime we get a new location
 last_alt = -1
 last_long = -1
 last_lat = -1
 
+# Code adapted fromn https://github.com/olegkutkov/allsky/tree/master/src/utils/mlx90614
+
 def gps_callback(msg):
-    """ updates the gps location """
+    """ Updates the gps location based on a NAvSatFix message"""
     # access global variables
     global last_alt
     global last_lat
@@ -64,10 +66,14 @@ def write_emissivity(epsilon):
     return val
 
 def mlx90614_publisher():
+    
     pub_ambient = rospy.Publisher('ambient_temperature', Temperature, queue_size=10)
     pub_object = rospy.Publisher('object_temperature', Temperature, queue_size=10)
     seq = 0
     rate = rospy.Rate(10) # rate in Hz
+
+    # just some logging to the terminal. Prints time, location, temperatures. 
+    rospy.loginfo("MLX_pub: publishing data. Example obj. value: " + str(read_object1_temp()))
 
     while not rospy.is_shutdown():
         ambient_temp = read_ambient_temp()
@@ -101,11 +107,11 @@ def mlx90614_publisher():
         temperature_data.close()
 
         # just some logging to the terminal. Prints time, location, temperatures. 
-        rospy.loginfo(datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m-%d-%Y-%H:%M:%S'))
-        rospy.loginfo("Location: " + str(last_lat) + "," +  str(last_long) +  "," +  str(last_alt))
-        rospy.loginfo("Ambient Temperature: {:.2f} C".format(ambient_temp))
-        rospy.loginfo("Object1 Temperature: {:.2f} C".format(object1_temp))
-        rospy.loginfo("")
+        #rospy.loginfo(datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m-%d-%Y-%H:%M:%S'))
+        #rospy.loginfo("Location: " + str(last_lat) + "," +  str(last_long) +  "," +  str(last_alt))
+        #rospy.loginfo("Ambient Temperature: {:.2f} C".format(ambient_temp))
+        #rospy.loginfo("Object1 Temperature: {:.2f} C".format(object1_temp))
+        #rospy.loginfo("")
 
 
         # publish the temperatures
@@ -118,6 +124,9 @@ def mlx90614_publisher():
         rate.sleep()
 
 if __name__ == '__main__':
+
+    rospy.wait_for_service('/object_detect', timeout=40)
+    
     rospy.init_node('mlx90614_publisher', anonymous=True)
 
     # allow sus to get GPS info

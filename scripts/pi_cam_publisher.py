@@ -10,21 +10,25 @@ import cv2
 import time
 import datetime
 ##############################################################################
+#0 for HD Camera Manufa, 2 for MAPIR
+# v4l2-ctl --list-devices
+cam_num = 2
 
 bridge = CvBridge()
 
+# initialize the location to -1,-1,-1 
 last_alt = -1
 last_long = -1
 last_lat = -1
-first = True
 
 def gps_callback(msg):
-    """ updates the gps location """
+    """ Updates the gps location based on a NavSatFix message """
     # access global variables
     global last_alt
     global last_lat
     global last_long
     
+    #update
     last_lat = msg.latitude
     last_long = msg.longitude
     last_alt = msg.altitude
@@ -38,39 +42,37 @@ def camera_publisher():
     rate = rospy.Rate(1) # 1 Hz maximum
     bridge = CvBridge()
 
-    rospy.loginfo("pi_campublisher: RPI cam publisher node initialized.\n")
-
+    rospy.loginfo("pi_cam_publisher: RPi cam publisher node initialized. Publishing images.\n")
     
     while not rospy.is_shutdown():  
-
-        cap = cv2.VideoCapture('/dev/video0', cv2.CAP_V4L)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 2560)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1440)
+        
+        #capture the image (with set up and clean up)
+        cap = cv2.VideoCapture(cam_num)
         ret, frame = cap.read()
         cap.release()
 
+        # timestamp it
         photo_timestamp = rospy.get_rostime()
 
-        cv2.imwrite('/home/robertobrien/Documents/tests/image.jpg', frame)
+        # error logging
+        if frame is None:
+            rospy.logerr("pi_cam_publisher: image is null...")
         
+        # formatted time stamp in string form (for saving image)
         formatted_photo_t = datetime.datetime.fromtimestamp(photo_timestamp.to_sec()).strftime('%m_%d_%Y_%H-%M-%S')
 
-        if frame is None:
-            rospy.logerr("survey3_publisher: image is null...")
+        #convert cv2 image to a ROS image
         ros_image = bridge.cv2_to_imgmsg(frame, "bgr8")
         ros_image.header.stamp = photo_timestamp
 
-
-        # logging the photos to our runs folder
+        # logging the photos to our runs folder. Name found at '/home/robertobrien/Documents/runs/run_name.txt' and set by talker.py
         f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
         run_name = f.read()
         cv2.imwrite('/home/robertobrien/Documents/runs/'+run_name+'/'+formatted_photo_t+'_image.jpg', frame)
 
-        #print(last_lat)
+        #Initialize an image with GPS metadata, and set values
         img_gps = ImageWithGPS()
-        
-        #expirimental
-        img_gps.image = ros_image # comment out if you just want to debug the other stuff
+        img_gps.image = ros_image
         img_gps.latitude = float(last_lat)
         img_gps.longitude = float(last_long)
         img_gps.altitude = float(last_alt)
@@ -82,6 +84,7 @@ def camera_publisher():
         rate.sleep()
 
 if __name__ == '__main__':
+    rospy.wait_for_service('/object_detect', timeout=40)
     try:
         camera_publisher()
     except rospy.ROSInterruptException:

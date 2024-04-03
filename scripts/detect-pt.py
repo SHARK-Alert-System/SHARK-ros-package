@@ -69,6 +69,8 @@ def handle_object_detect(req):
         rospy.logerr("detect-pt: " + str(e))
 
     detections = infer(model, cv_image)  # run object detection
+    detections.print()
+    print()
     x1s = []
     y1s = []
     x2s = []
@@ -89,7 +91,7 @@ def handle_object_detect(req):
             y2s.append(y2)
             confs.append(conf)
             labels.append(label)
-            fnames.append(filename)
+            fnames.append("filename-placeholder")
         except:
             x1s = [0]
             y1s = [0]
@@ -113,7 +115,7 @@ def handle_object_detect(req):
 
     rospy.loginfo("detect-pt: sending back response (ObjectDetectResponse)")
     print(response)
-    print()
+    #print()
 
     return response
 
