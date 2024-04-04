@@ -10,9 +10,9 @@ import cv2
 import time
 import datetime
 ##############################################################################
-#0 for HD Camera Manufa, 2 for MAPIR
+#2 for USB wide angle, 0 for MAPIR
 # v4l2-ctl --list-devices
-cam_num = 2
+cam_num = 0
 
 bridge = CvBridge()
 

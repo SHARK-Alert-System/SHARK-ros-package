@@ -117,8 +117,12 @@ def mlx90614_publisher():
         # publish the temperatures
         if ambient_temp_msg.temperature is not None:
             pub_ambient.publish(ambient_temp_msg)
+        else:
+            rospy.logerr("MLX: Error reading ambient temp.")
         if object_temp_msg.temperature is not None:
             pub_object.publish(object_temp_msg)
+        else:
+            rospy.logerr("MLX: Error reading object temp.")
 
         seq = seq+1
         rate.sleep()

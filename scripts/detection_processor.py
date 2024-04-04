@@ -22,7 +22,6 @@ class ImageDetectionProcessor:
     def image_callback(self, image_gps_msg):
         global detections_f_path
 
-
         if self.is_request_processing:
             # If we are already processing a request, don't do anything
             return
@@ -67,7 +66,7 @@ class ImageDetectionProcessor:
             detection_data.close()
 
             self.detection_pub.publish(detection_msg)
-            print(detection_msg)
+            #print(detection_msg)
         
         self.is_request_processing = False  # Reset the flag as the request has been processed
 

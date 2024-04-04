@@ -25,26 +25,24 @@ def infer(model,img):
     results = model(img) # this can take either an image or a path or an array of both
     return results
 
-# Draw bounding boxes and labels
+# draw bounding boxes and labels
 def draw_bounding_box(img, model, results):
     copy = img.copy()
     for *xyxy, conf, cls in results.xyxy[0]:
         x1, y1, x2, y2 = map(int, xyxy)
         label = model.names[int(cls)]  # Get the label for the class
         #print("label: ", label)
-        color = (255, 0, 0)  # Blue color in BGR
+        color = (255, 0, 0)  #blue color (BRG)
         cv2.rectangle(copy, (x1, y1), (x2, y2), color, 2)
         cv2.putText(copy, f'{label} {conf:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
     return copy
 
 def show_image(img):
-    # Display the image
     cv2.imshow('YOLOv5 Detection', img)
     cv2.waitKey(0)  # Wait for a key press to close the window
     cv2.destroyAllWindows()
 
 def write_image(img):
-    # Display the image
     f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
     run_name = f.read()
     formatted_photo_t = datetime.datetime.fromtimestamp(rospy.get_rostime().to_sec()).strftime('%m_%d_%Y_%H-%M-%S')
@@ -52,6 +50,7 @@ def write_image(img):
     return formatted_photo_t
 
 
+#get the mofel
 model = get_model(path='/home/robertobrien/catkin_ws/src/uav_pi/weights/best.pt')  # load model in
 bridge = CvBridge()  # initialize a CV bridge to convert ROS images to OpenCV format
 
@@ -59,18 +58,15 @@ bridge = CvBridge()  # initialize a CV bridge to convert ROS images to OpenCV fo
 def handle_object_detect(req):
     rospy.loginfo("detect-pt: Got a request to detect objects")
 
-    # TODO make sure that we get the filepath again
-    #filename = req.imafname
-    #print(filename)
-
     try:
         cv_image = bridge.imgmsg_to_cv2(req.image, "bgr8")  # convert ROS image message to OpenCV image
     except CvBridgeError as e:
         rospy.logerr("detect-pt: " + str(e))
 
     detections = infer(model, cv_image)  # run object detection
-    detections.print()
-    print()
+    detections.print() # print out the inference
+    print("")
+
     x1s = []
     y1s = []
     x2s = []
