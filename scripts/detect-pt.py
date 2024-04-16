@@ -30,7 +30,7 @@ def draw_bounding_box(img, model, results):
     copy = img.copy()
     for *xyxy, conf, cls in results.xyxy[0]:
         x1, y1, x2, y2 = map(int, xyxy)
-        label = model.names[int(cls)]  # Get the label for the class
+        label = model.names[int(cls)]  #class label
         #print("label: ", label)
         color = (255, 0, 0)  #blue color (BRG)
         cv2.rectangle(copy, (x1, y1), (x2, y2), color, 2)
@@ -52,10 +52,11 @@ def write_image(img):
 
 #get the mofel
 model = get_model(path='/home/robertobrien/catkin_ws/src/uav_pi/weights/best.pt')  # load model in
-bridge = CvBridge()  # initialize a CV bridge to convert ROS images to OpenCV format
-
+bridge = CvBridge()  
+detections_f_path = ""
 
 def handle_object_detect(req):
+    global detections_f_path
     rospy.loginfo("detect-pt: Got a request to detect objects")
 
     try:
@@ -65,7 +66,6 @@ def handle_object_detect(req):
 
     detections = infer(model, cv_image)  # run object detection
     detections.print() # print out the inference
-    print("")
 
     x1s = []
     y1s = []
@@ -74,9 +74,20 @@ def handle_object_detect(req):
     confs = []
     labels = []
     fnames = []
+
+    # save im
+    bb_img = draw_bounding_box(cv_image, model, detections)
+    photo_fname = write_image(bb_img)  # Or show_image(bb_img)
+
+    t = detections.t
+    detection_data = open(detections_f_path, "w")
+    detection_data.write(t[0] + "," + t[1] + "," + t[2]"\n")
+    detection_data.close()
+    print("")
+
     for *xyxy, conf, cls in detections.xyxy[0]:
         try:
-            if conf < 0.5:  # Filter out detections with low confidence
+            if conf < 0.5: 
                 continue
             x1, y1, x2, y2 = map(int, xyxy)
             label = model.names[int(cls)]
@@ -87,7 +98,7 @@ def handle_object_detect(req):
             y2s.append(y2)
             confs.append(conf)
             labels.append(label)
-            fnames.append("filename-placeholder")
+            fnames.append(photo_fname)
         except:
             x1s = [0]
             y1s = [0]
@@ -106,9 +117,6 @@ def handle_object_detect(req):
     response.labels = labels
     response.fnames = fnames
 
-    bb_img = draw_bounding_box(cv_image, model, detections)
-    photo_fname = write_image(bb_img)  # Or show_image(bb_img)
-
     rospy.loginfo("detect-pt: sending back response (ObjectDetectResponse)")
     print(response)
     #print()
@@ -117,6 +125,14 @@ def handle_object_detect(req):
 
 def object_detect_server():
     rospy.init_node('object_detect_server')
+    f = open('/home/robertobrien/Documents/runs/run_name.txt', "r")
+    run_name = f.read()
+    f.close()
+    detections_f_path = "/home/robertobrien/Documents/runs/" + run_name + "/inference_time.txt"
+    detection_data = open(detections_f_path, "w")
+    detection_data.write("preprocessing,inference,postprocessing\n")
+    detection_data.close()
+
     s = rospy.Service('object_detect', ObjectDetect, handle_object_detect)
     rospy.loginfo("detect-pt: Ready to detect objects.")
     rospy.spin()

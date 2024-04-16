@@ -39,17 +39,23 @@ def camera_publisher():
     rospy.Subscriber('gps_state', NavSatFix, gps_callback)
     rospy.init_node('camera_publisher', anonymous=True)
     pub = rospy.Publisher('camera_image', ImageWithGPS, queue_size=10)
+    pub_raw = rospy.Publisher('camera_image_raw', Image, queue_size=10)
     rate = rospy.Rate(1) # 1 Hz maximum
     bridge = CvBridge()
 
     rospy.loginfo("pi_cam_publisher: RPi cam publisher node initialized. Publishing images.\n")
     
-    while not rospy.is_shutdown():  
-        
+    while 1:  
         #capture the image (with set up and clean up)
-        cap = cv2.VideoCapture(cam_num)
-        ret, frame = cap.read()
-        cap.release()
+        cap = None
+        ret = None
+        frame = None
+        try:
+            cap = cv2.VideoCapture(cam_num)
+            ret, frame = cap.read()
+            cap.release()
+        except:
+            continue
 
         # timestamp it
         photo_timestamp = rospy.get_rostime()
@@ -57,6 +63,7 @@ def camera_publisher():
         # error logging
         if frame is None:
             rospy.logerr("pi_cam_publisher: image is null...")
+            continue
         
         # formatted time stamp in string form (for saving image)
         formatted_photo_t = datetime.datetime.fromtimestamp(photo_timestamp.to_sec()).strftime('%m_%d_%Y_%H-%M-%S')
@@ -78,6 +85,9 @@ def camera_publisher():
         img_gps.altitude = float(last_alt)
         img_gps.fname = str(run_name+'/'+formatted_photo_t+'_image.jpg')
 
+        pure_image = Image()
+        pure_image.data = ros_image
+        pub_raw.publish(ros_image) # publishes the raw ros image (for visualization)
         #print(img_gps)
 
         pub.publish(img_gps)

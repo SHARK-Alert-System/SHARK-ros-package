@@ -75,35 +75,52 @@ def mlx90614_publisher():
     # just some logging to the terminal. Prints time, location, temperatures. 
     rospy.loginfo("MLX_pub: publishing data. Example obj. value: " + str(read_object1_temp()))
 
-    while not rospy.is_shutdown():
-        ambient_temp = read_ambient_temp()
-        a_time = rospy.get_rostime() # logs time that temperature was taken.
-
-        object1_temp = read_object1_temp() # logs time that temperature was taken.
+    while 1:
+        ambient_temp = 0
+        a_time = rospy.get_rostime()
+        object1_temp = 0 
         o_time = rospy.get_rostime()
+        try:
+            ambient_temp = read_ambient_temp()
+            a_time = rospy.get_rostime() # logs time that temperature was taken.
+        except:
+            print("error reading ambient")
+
+        try:
+            object1_temp = read_object1_temp() # logs time that temperature was taken.
+            o_time = rospy.get_rostime()
+        except: 
+            print("error reading object")
         #object2_temp = read_object1_temp() # is the same as object1 so we do not need this
 
         ambient_temp_msg = Temperature()
         object_temp_msg = Temperature() # temperature objects
 
         # Initializes Temperature object
-        ambient_temp_msg.temperature = round(ambient_temp,2)
+        try:
+            ambient_temp_msg.temperature = round(ambient_temp,2)
+        except:
+            ambient_temp_msg.temperature = 0
+
         ambient_temp_msg.variance = 0
         ambient_temp_msg.header.frame_id = "ambient_temp"
         ambient_temp_msg.header.stamp = a_time
         ambient_temp_msg.header.seq = seq
-
+        time.sleep(0.01) # wait 10ms in between reads
         # Initializes Temperature object
-        object_temp_msg.temperature = round(object1_temp,2)
+        #print(object1_temp)
+        try:
+            object_temp_msg.temperature = round(object1_temp,2)
+        except:
+            object_temp_msg.temperature = 0
         object_temp_msg.variance = 0
         object_temp_msg.header.frame_id = "object_temp"
         object_temp_msg.header.stamp = o_time
         object_temp_msg.header.seq = seq
-        
         # log the data to a text file 
         temperature_data = open(temperature_f_path, "a")
         datetime_str = str(datetime.datetime.fromtimestamp(o_time.to_sec()))
-        temperature_data.write("" + datetime_str + "," + str(round(ambient_temp,2)) + "," + str(round(object1_temp,2)) + "," + str(last_lat) + "," + str(last_long) +  "," + str(last_alt) + "\n")
+        temperature_data.write("" + datetime_str + "," + str(ambient_temp_msg.temperature) + "," + str(object_temp_msg.temperature) + "," + str(last_lat) + "," + str(last_long) +  "," + str(last_alt) + "\n")
         temperature_data.close()
 
         # just some logging to the terminal. Prints time, location, temperatures. 
@@ -118,11 +135,11 @@ def mlx90614_publisher():
         if ambient_temp_msg.temperature is not None:
             pub_ambient.publish(ambient_temp_msg)
         else:
-            rospy.logerr("MLX: Error reading ambient temp.")
+            rospy.logerr("MLX: Error pub ambient temp.")
         if object_temp_msg.temperature is not None:
             pub_object.publish(object_temp_msg)
         else:
-            rospy.logerr("MLX: Error reading object temp.")
+            rospy.logerr("MLX: Error pub object temp.")
 
         seq = seq+1
         rate.sleep()
@@ -154,7 +171,7 @@ if __name__ == '__main__':
             rospy.loginfo("MLX_Publisher: Starting up bus")
             bus = smbus2.SMBus(1)
             #write_emissivity(EMISSIVITY) #set the emissivity
-            read_ambient_temp()
+            #read_ambient_temp()
             mlx90614_publisher()
         except rospy.ROSInterruptException:
             rospy.logerr("There was an error. Trying to start again...")

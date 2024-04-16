@@ -13,7 +13,9 @@ import random
 def publish_image(folder_path, topic_name):
     rospy.init_node('image_publisher', anonymous=True)
     pub = rospy.Publisher(topic_name, ImageWithGPS, queue_size=10)
-    rate = rospy.Rate(1)  # 1 Hz
+    rate = rospy.Rate(0.5)  # 1 Hz
+
+    pub_raw = rospy.Publisher("raw_camera_image", Image, queue_size=10)
 
     #Initialize the bridge between ROS and OpenCV
     bridge = CvBridge()
@@ -24,41 +26,44 @@ def publish_image(folder_path, topic_name):
         rospy.logerr("image_publisher: No files found in the folder: {}".format(folder_path))
         return
     
-    # Pick a random image from the list
-    image_path = os.path.join(folder_path, random.choice(files))
+    while True:
+        # Pick a random image from the list
+        image_path = os.path.join(folder_path, random.choice(files))
 
-    # Load the image with OpenCV
-    cv_image = cv2.imread(image_path)
 
-    if cv_image is None:
-        rospy.logerr("image_publisher: Failed to load image from path: {}".format(image_path))
-        return
+        # Load the image with OpenCV
+        cv_image = cv2.imread(image_path)
 
-    # Convert the OpenCV image to a ROS message
-    ros_image = bridge.cv2_to_imgmsg(cv_image, "bgr8")
+        if cv_image is None:
+            rospy.logerr("image_publisher: Failed to load image from path: {}".format(image_path))
+            return
 
-    img_gps = ImageWithGPS()
+        # Convert the OpenCV image to a ROS message
+        ros_image = bridge.cv2_to_imgmsg(cv_image, "bgr8")
 
-    img_gps.image=ros_image
-    img_gps.latitude = 30.69 # made up numbers
-    img_gps.longitude = -72.69
-    img_gps.altitude = 30
-    img_gps.fname = "image_name.jpeg"
-    
-    rospy.loginfo("image_publisher: Running image publisher: {}".format(topic_name))
-    rospy.loginfo(image_path)
+        #publish the raw image too
+        pure_image = Image()
+        pure_image.data = ros_image
+        pub_raw.publish(ros_image) # publishes the raw ros image (for visualization)
 
-    while not rospy.is_shutdown():
+        img_gps = ImageWithGPS()
+
+        img_gps.image=ros_image
+        img_gps.latitude = 40.204839
+        img_gps.longitude = -74.36424
+        img_gps.altitude = 30
+        img_gps.fname = "image_name.jpeg"
         
+        rospy.loginfo("image_publisher: Running image publisher: {}".format(topic_name))
+        rospy.loginfo(image_path)
+            
         pub.publish(img_gps)
         rospy.loginfo("image_publisher: Publishing image")
+        rospy.loginfo("Publishing: " + str(image_path))
         # rospy.loginfo("Published image to topic: {}".format(topic_name))
         rate.sleep()
 
 if __name__ == "__main__":
-    folder_path = "/home/robertobrien/Documents/validate/"
+    folder_path = "/home/robertobrien/Documents/april-7-test-images"
     topic_name = "camera_image"
-    try:
-        publish_image(folder_path, topic_name)
-    except rospy.ROSInterruptException:
-        pass
+    publish_image(folder_path, topic_name)
